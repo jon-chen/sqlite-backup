@@ -29,6 +29,7 @@ Usage:
     -k keep         Number of backups to keep, defaults to empty, meaning keep all backups
     -t command      Command to execute once done, path to backup will be passed as an argument.
     -P pending      Extension to give to file while creating backup
+    -m method       The backup method (dump or backup). Backup is better for online backups.
 ```
 
 Note that for the removal of older backups to properly function, `backup.sh`
