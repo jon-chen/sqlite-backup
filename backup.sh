@@ -16,6 +16,7 @@ SQLITE_BACKUP_DB=${SQLITE_BACKUP_DB:-""}
 SQLITE_BACKUP_DESTINATION=${SQLITE_BACKUP_DESTINATION:-"."}
 SQLITE_BACKUP_NAME=${SQLITE_BACKUP_NAME:-"%Y%m%d-%H%M%S.sql"}
 SQLITE_BACKUP_PENDING=${SQLITE_BACKUP_PENDING:-".pending"}
+SQLITE_BACKUP_METHOD=${SQLITE_BACKUP_METHOD:-"dump"}
 SQLITE_BACKUP_THEN=${SQLITE_BACKUP_THEN:-""}
 SQLITE_BACKUP_WITHARG=${SQLITE_BACKUP_WITHARG:-1}
 
@@ -43,6 +44,7 @@ Usage:
     -k keep         Number of backups to keep, defaults to empty, meaning keep all backups
     -t command      Command to execute once done, path to backup will be passed as an argument.
     -P pending      Extension to give to file while creating backup
+    -m method       The backup method (dump or backup). Backup is better for online backups.
 USAGE
   exit "$exitcode"
 }
@@ -82,6 +84,11 @@ while [ $# -gt 0 ]; do
             SQLITE_BACKUP_PENDING=$2; shift 2;;
         --pending=*)
             SQLITE_BACKUP_PENDING="${1#*=}"; shift 1;;
+
+        -m | --method)
+            SQLITE_BACKUP_METHOD=$2; shift 2;;
+        --method=*)
+            SQLITE_BACKUP_METHOD="${1#*=}"; shift 1;;
 
         --with-arg)
             SQLITE_BACKUP_WITHARG=1; shift;;
@@ -148,9 +155,13 @@ fi
 # Install (pending) backup file into proper name if relevant, or remove it
 # from disk.
 log "Starting backup of all databases to $FILE"
-if sqlite3 "$SQLITE_BACKUP_DB" \
-        .dump \
-        .exit > "${SQLITE_BACKUP_DESTINATION}/${DSTFILE}"; then
+if [ "$SQLITE_BACKUP_METHOD" = "dump" ]; then
+    SQLITE_BACKUP_RESULT=$(sqlite3 "$SQLITE_BACKUP_DB" .dump .exit > "${SQLITE_BACKUP_DESTINATION}/${DSTFILE}")
+else
+    SQLITE_BACKUP_RESULT=$(sqlite3 "$SQLITE_BACKUP_DB" ".backup '${SQLITE_BACKUP_DESTINATION}/${DSTFILE}'")
+fi
+
+if $SQLITE_BACKUP_RESULT; then
     if [ -n "${SQLITE_BACKUP_PENDING}" ]; then
         mv -f "${SQLITE_BACKUP_DESTINATION}/${DSTFILE}" "${SQLITE_BACKUP_DESTINATION}/${FILE}"
     fi
